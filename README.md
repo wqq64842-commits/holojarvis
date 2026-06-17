@@ -10,6 +10,8 @@
 [![Platform](https://img.shields.io/badge/Platform-macOS-black.svg)](https://www.apple.com/macos/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 
+**简体中文** · [English](./README.en.md)
+
 <img src="docs/screenshot.png" width="420" alt="Jarvis HUD" />
 
 </div>
