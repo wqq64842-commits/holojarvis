@@ -12,7 +12,9 @@ Local speech recognition · any LLM (via your own gateway / DeepSeek / GPT…) �
 
 [简体中文](./README.md) · **English**
 
-<img src="docs/screenshot.png" width="420" alt="Jarvis HUD" />
+<img src="docs/demo.gif" width="440" alt="Jarvis-Mac demo" />
+
+<sub>Demo: say "Jarvis" → listen → think → reply in a cloned voice; the HUD arc reactor shifts color by state</sub>
 
 </div>
 

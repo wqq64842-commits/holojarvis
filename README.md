@@ -12,7 +12,9 @@
 
 **简体中文** · [English](./README.en.md)
 
-<img src="docs/screenshot.png" width="420" alt="Jarvis HUD" />
+<img src="docs/demo.gif" width="440" alt="Jarvis-Mac 演示" />
+
+<sub>演示：喊「贾维斯」→ 聆听 → 思考 → 用克隆音回答，HUD 反应堆随状态变色</sub>
 
 </div>
 
