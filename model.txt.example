@@ -1,0 +1,9 @@
+# 复制本文件为 model.txt 选择大模型（# 开头的行会被忽略，取第一行有效内容）。
+#   cp model.txt.example model.txt
+# 填你中转站后台支持的模型名。建议选「支持工具调用(function calling)」的模型，
+# 否则贾维斯开应用/查屏幕/记忆等工具能力会失效。常见：
+#   deepseek-chat       DeepSeek V3，支持工具调用，性价比高
+#   gpt-4o / gpt-4o-mini
+#   claude-sonnet-4-x   （若中转站转发 Claude）
+# 环境变量 JARVIS_MODEL 优先级更高。
+deepseek-chat

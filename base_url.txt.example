@@ -1,0 +1,7 @@
+# 复制本文件为 base_url.txt 并填入你的中转站地址。
+#   cp base_url.txt.example base_url.txt
+# 中转站需是 OpenAI 兼容网关（/v1/chat/completions），填到 /v1 即可，
+# 贾维斯会自动接 /chat/completions。也可直连官方，例如：
+#   https://api.deepseek.com/v1
+# 环境变量 JARVIS_BASE_URL 优先级更高。
+https://你的中转站域名/v1

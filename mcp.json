@@ -1,0 +1,17 @@
+{
+  "filesystem": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "~/Desktop", "~/Downloads"],
+    "enabled": true
+  },
+  "_示例_浏览器自动化": {
+    "command": "npx",
+    "args": ["-y", "@playwright/mcp@latest"],
+    "enabled": false
+  },
+  "_示例_网页抓取(python)": {
+    "command": "uvx",
+    "args": ["mcp-server-fetch"],
+    "enabled": false
+  }
+}

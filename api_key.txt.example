@@ -1,0 +1,4 @@
+# 复制本文件为 api_key.txt 并填入你中转站（或 LLM 服务）的 API Key，只放一行。
+#   cp api_key.txt.example api_key.txt
+# 环境变量 JARVIS_API_KEY 优先级更高。切勿把真实 key 提交到 git！
+在这里粘贴你的-API-KEY

@@ -1,0 +1,38 @@
+# ===== 敏感信息 / 本地配置（务必不要提交）=====
+# 中转站 / LLM 的 API Key
+api_key.txt
+# 你的中转站地址
+base_url.txt
+# 你选用的模型名
+model.txt
+# 个人笔记（HUD 面板内容）
+notes.txt
+# 贾维斯记住的关于你的事
+memory.json
+.jarvis_key
+
+# ===== 个人克隆音 / 大音频文件 =====
+*.wav
+*.mp3
+*.m4a
+*.flac
+
+# ===== Python =====
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.venv-tts/
+*.egg-info/
+
+# ===== Node / 缓存 =====
+.npm-cache/
+
+# ===== 编辑器 / 系统 / 本地代理 =====
+.DS_Store
+.claude/
+.idea/
+.vscode/
+
+# ===== 内部备份 =====
+pet_orb_backup.py
