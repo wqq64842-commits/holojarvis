@@ -7,7 +7,7 @@
 Local speech recognition · any LLM (via your own gateway / DeepSeek / GPT…) · tool calling · cloned voice · Iron-Man-style holographic desk pet
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
-[![Platform](https://img.shields.io/badge/Platform-macOS-black.svg)](https://www.apple.com/macos/)
+[![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows-black.svg)](#-quick-start)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 
 [简体中文](./README.md) · **English**
@@ -22,10 +22,13 @@ Local speech recognition · any LLM (via your own gateway / DeepSeek / GPT…) �
 
 ## ✨ What is this
 
-Jarvis-Mac is a **Chinese-language voice assistant** for macOS, inspired by Iron Man's AI butler.
+Jarvis-Mac is a **Chinese-language voice assistant** for **macOS / Windows**, inspired by Iron Man's AI butler.
 Say "Jarvis" to your computer and it wakes up, listens, understands what you want, calls tools to do it,
 and answers you by voice — while a cyan holographic console pet floats on your desktop showing the time,
 system telemetry, and live conversation captions.
+
+> 🪟 It started as a macOS project (hence the repo name `jarvis-mac`) and is now **cross-platform from a single codebase**:
+> platform-specific bits (speech synthesis, screenshots, clipboard, media/volume, recycle bin, telemetry…) switch automatically, centralized in `jarvis/winops.py`.
 
 Its brain talks to an **OpenAI-compatible API**, so you can plug in **any model through your own gateway**
 (DeepSeek, GPT, Claude…) and switch on demand. Its voice can optionally use **GPT-SoVITS** to speak in a cloned voice.
@@ -55,7 +58,7 @@ flowchart LR
     Brain <--> LLM[(Gateway<br/>OpenAI-compatible)]
     Brain <--> Tools[🧰 local tools + MCP]
     Brain --> Mem[(long-term memory)]
-    Brain --> TTS[🗣️ GPT-SoVITS / say]
+    Brain --> TTS[🗣️ GPT-SoVITS / system voice]
     TTS --> Speaker[🔊 speak]
     Brain -.state/captions.-> Pet[🪟 HUD pet]
 ```
@@ -67,13 +70,17 @@ flowchart LR
 | Brain | `jarvis/brain.py` | Gateway calls, tool-calling loop, multi-step tasks |
 | Tools | `jarvis/tools.py` `jarvis/mcp_bridge.py` | Local tools + MCP tools |
 | Memory | `jarvis/memory.py` | Persisted to `memory.json` |
-| Voice | `jarvis/tts.py` | GPT-SoVITS cloned voice / system say |
+| Voice | `jarvis/tts.py` | GPT-SoVITS cloned voice / system voice (say · SAPI) |
 | Pet | `jarvis/pet.py` | Holographic HUD (tkinter + Pillow) |
+| Platform | `jarvis/winops.py` | Windows low-level ops (clipboard/media/screenshot/recycle/telemetry…) |
 | Config | `jarvis/config.py` | Central configuration |
 
 ## 🚀 Quick start
 
-> Requires **macOS** + **Python 3.12**. The first run downloads the Whisper model — please be patient.
+> Requires **Python 3.12** (macOS or Windows). The first run downloads the Whisper model — please be patient.
+
+<details open>
+<summary><b>🍎 macOS</b></summary>
 
 ```bash
 # 1) Clone
@@ -95,14 +102,43 @@ cp model.txt.example    model.txt      # pick a model, e.g. deepseek-chat
 # or headless: ./run.sh --no-pet
 ```
 
-Then say "**贾维斯**" (Jarvis), or click the arc reactor at the center of the pet, to start talking.
-
 > ⚠️ On first run macOS asks for **Microphone** permission; some tools (screenshot / read-screen / WeChat)
 > also need **Screen Recording** and **Accessibility** permission under *System Settings → Privacy & Security*.
+</details>
+
+<details>
+<summary><b>🪟 Windows (PowerShell)</b></summary>
+
+```powershell
+# 1) Clone
+git clone https://github.com/wqq64842-commits/jarvis-mac.git
+cd jarvis-mac
+
+# 2) Create a venv and install deps
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+# 3) Configure your gateway (OpenAI-compatible)
+copy base_url.txt.example base_url.txt   # your gateway URL, e.g. https://xxx/v1
+copy api_key.txt.example  api_key.txt    # your API key
+copy model.txt.example    model.txt      # pick a model, e.g. deepseek-chat
+
+# 4) Run (with the desk pet)
+.\run.bat
+# or headless: .\run.bat --no-pet
+```
+
+> ⚠️ On Windows, allow **Microphone** access on first run (Settings → Privacy & security → Microphone).
+> The system voice uses built-in **SAPI** — install a Chinese voice (e.g. *Microsoft Huihui*) under
+> *Time & language → Speech*. WeChat sending uses UI automation, so WeChat must be logged in and focusable.
+</details>
+
+Then say "**贾维斯**" (Jarvis), or click the arc reactor at the center of the pet, to start talking.
 
 ### 🗣️ (Optional) Cloned voice
 
-By default it speaks with the system Chinese `say` voice — zero config. For a cloned voice:
+By default it speaks with the system Chinese voice (macOS `say` / Windows SAPI) — zero config. For a cloned voice:
 
 1. Deploy [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS) and start its `api_v2` listening on `127.0.0.1:9880`;
 2. Prepare a few-second reference clip of the voice you want, and set:
@@ -142,7 +178,7 @@ Environment variables override these (higher priority): `JARVIS_BASE_URL`, `JARV
 | `control_music` / `set_volume` | Control Music, adjust volume |
 | `set_timer` | Countdown voice reminder |
 | `take_screenshot` / `read_screen` | Screenshot, read & summarize the screen |
-| `send_wechat` | Send a WeChat message (confirms verbally first) |
+| `send_wechat` | Send a WeChat message (confirms verbally first; macOS / Windows) |
 | `system_power` | Lock / sleep |
 | `remember` / `forget` | Long-term memory add/remove |
 | `list_directory` / `run_shell` / `move_to_trash` | Multi-step file tasks (deletes go to Trash) |
@@ -154,7 +190,8 @@ a filesystem example ships with the repo. MCP tools are offered to the LLM along
 
 ## 🗺️ Roadmap
 
-- [ ] Launch at login (launchd)
+- [x] Windows support (cross-platform from a single codebase)
+- [ ] Launch at login (macOS launchd / Windows Task Scheduler)
 - [ ] Click-through / adjustable opacity for the pet
 - [ ] More built-in tools (Calendar, Reminders, Mail)
 - [ ] Waveform driven by real mic levels

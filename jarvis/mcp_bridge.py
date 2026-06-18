@@ -14,15 +14,30 @@ import asyncio
 import json
 import os
 import re
+import shutil
 import threading
 from contextlib import AsyncExitStack
 from pathlib import Path
+
+from . import config
 
 _CONFIG = Path(__file__).resolve().parent.parent / "mcp.json"
 
 
 def _sanitize(name: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:60]
+
+
+def _resolve_command(cmd: str) -> str:
+    """Windows 上 npx/npm/uvx 等是 .cmd/.exe，裸名字 subprocess 起不来，
+    这里解析成可执行文件的绝对路径（解析不到就原样返回）。"""
+    if not config.IS_WINDOWS or os.path.splitext(cmd)[1]:
+        return cmd
+    for cand in (cmd, cmd + ".cmd", cmd + ".exe", cmd + ".bat"):
+        found = shutil.which(cand)
+        if found:
+            return found
+    return cmd
 
 
 def load_config() -> dict:
@@ -82,7 +97,7 @@ class McpBridge:
                     cache.mkdir(exist_ok=True)
                     env["npm_config_cache"] = str(cache)
                 params = StdioServerParameters(
-                    command=conf["command"], args=args, env=env,
+                    command=_resolve_command(conf["command"]), args=args, env=env,
                 )
                 read, write = await self._stack.enter_async_context(
                     stdio_client(params))

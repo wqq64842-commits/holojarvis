@@ -7,7 +7,7 @@
 本地语音识别 · 任意大模型（中转站/DeepSeek/GPT…）· 工具调用 · 克隆音发声 · 钢铁侠风格全息桌宠
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
-[![Platform](https://img.shields.io/badge/Platform-macOS-black.svg)](https://www.apple.com/macos/)
+[![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows-black.svg)](#-快速开始)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 
 **简体中文** · [English](./README.en.md)
@@ -22,9 +22,12 @@
 
 ## ✨ 这是什么
 
-Jarvis-Mac 是一个跑在 macOS 上的**中文语音助手**，灵感来自电影里钢铁侠的 AI 管家。
+Jarvis-Mac 是一个跑在 **macOS / Windows** 上的**中文语音助手**，灵感来自电影里钢铁侠的 AI 管家。
 你对着电脑喊「贾维斯」，它就醒来听你说话、理解意图、调用工具把事办了，再用语音回答你——
 桌面上还浮着一块青色的全息控制台桌宠，实时显示时间、系统状态和对话字幕。
+
+> 🪟 项目最初为 macOS 而生（仓库名 `jarvis-mac`），现已**同一套代码跨平台**支持 Windows：
+> 底层差异（语音合成、截屏、剪贴板、媒体/音量、回收站、系统遥测等）按系统自动切换，集中在 `jarvis/winops.py`。
 
 它的大脑接的是 **OpenAI 兼容接口**，所以你可以用**自己的中转站**接入任意模型
 （DeepSeek、GPT、Claude……），按需切换；嗓音可选接入 **GPT-SoVITS 克隆音**，让它用你想要的声音说话。
@@ -54,7 +57,7 @@ flowchart LR
     Brain <--> LLM[(中转站<br/>OpenAI 兼容)]
     Brain <--> Tools[🧰 本地工具 + MCP]
     Brain --> Mem[(长期记忆)]
-    Brain --> TTS[🗣️ GPT-SoVITS / say]
+    Brain --> TTS[🗣️ GPT-SoVITS / 系统嗓音]
     TTS --> Speaker[🔊 朗读]
     Brain -.状态/字幕.-> Pet[🪟 桌宠 HUD]
 ```
@@ -66,13 +69,17 @@ flowchart LR
 | 大脑 | `jarvis/brain.py` | 调中转站、工具调用循环、多步任务 |
 | 工具 | `jarvis/tools.py` `jarvis/mcp_bridge.py` | 本地工具 + MCP 工具 |
 | 记忆 | `jarvis/memory.py` | 持久化到 `memory.json` |
-| 发声 | `jarvis/tts.py` | GPT-SoVITS 克隆音 / 系统 say |
+| 发声 | `jarvis/tts.py` | GPT-SoVITS 克隆音 / 系统嗓音（say · SAPI）|
 | 桌宠 | `jarvis/pet.py` | 全息 HUD（tkinter + Pillow）|
+| 平台 | `jarvis/winops.py` | Windows 底层操作（剪贴板/媒体/截屏/回收站/遥测…）|
 | 配置 | `jarvis/config.py` | 集中读取各项配置 |
 
 ## 🚀 快速开始
 
-> 需要 **macOS** + **Python 3.12**。首次运行会下载 Whisper 模型，请耐心等待。
+> 需要 **Python 3.12**（macOS 或 Windows 均可）。首次运行会下载 Whisper 模型，请耐心等待。
+
+<details open>
+<summary><b>🍎 macOS</b></summary>
 
 ```bash
 # 1) 克隆
@@ -94,10 +101,39 @@ cp model.txt.example    model.txt      # 选模型，如 deepseek-chat
 # 或纯命令行：./run.sh --no-pet
 ```
 
-启动后喊一声「**贾维斯**」，或用鼠标点一下桌宠中央的反应堆，就能开始对话。
-
 > ⚠️ 首次运行 macOS 会弹窗申请**麦克风**权限；部分工具（截屏/读屏/发微信）还需要在
 > 「系统设置 → 隐私与安全性」里授予**屏幕录制**、**辅助功能**权限。
+</details>
+
+<details>
+<summary><b>🪟 Windows（PowerShell）</b></summary>
+
+```powershell
+# 1) 克隆
+git clone https://github.com/wqq64842-commits/jarvis-mac.git
+cd jarvis-mac
+
+# 2) 建虚拟环境并装依赖
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+# 3) 配置中转站（OpenAI 兼容网关）
+copy base_url.txt.example base_url.txt   # 填你的中转站地址，如 https://xxx/v1
+copy api_key.txt.example  api_key.txt    # 填你的 API Key
+copy model.txt.example    model.txt      # 选模型，如 deepseek-chat
+
+# 4) 启动（带桌宠）
+.\run.bat
+# 或纯命令行：.\run.bat --no-pet
+```
+
+> ⚠️ Windows 上首次运行会申请**麦克风**权限（设置 → 隐私与安全性 → 麦克风，允许桌面应用访问）。
+> 系统嗓音用内置 **SAPI**（建议在「时间和语言 → 语音」里装一个中文语音，如 *Microsoft Huihui*）；
+> 发微信靠 UI 自动化，需微信已登录、能被前台唤起。
+</details>
+
+启动后喊一声「**贾维斯**」，或用鼠标点一下桌宠中央的反应堆，就能开始对话。
 
 ### 🗣️（可选）接入克隆音
 
@@ -141,7 +177,7 @@ cp model.txt.example    model.txt      # 选模型，如 deepseek-chat
 | `control_music` / `set_volume` | 控制 Music、调音量 |
 | `set_timer` | 倒计时语音提醒 |
 | `take_screenshot` / `read_screen` | 截屏、看屏幕内容并总结 |
-| `send_wechat` | Mac 版微信发消息（发送前会先口头确认） |
+| `send_wechat` | 微信发消息（发送前会先口头确认；macOS / Windows 均支持） |
 | `system_power` | 锁屏 / 休眠 |
 | `remember` / `forget` | 长期记忆增删 |
 | `list_directory` / `run_shell` / `move_to_trash` | 多步文件任务（删除走废纸篓，更安全） |
@@ -153,7 +189,8 @@ cp model.txt.example    model.txt      # 选模型，如 deepseek-chat
 
 ## 🗺️ 路线图
 
-- [ ] 开机自启（launchd）
+- [x] Windows 支持（同一套代码跨平台）
+- [ ] 开机自启（macOS launchd / Windows 计划任务）
 - [ ] 桌宠点击穿透 / 可调透明度
 - [ ] 更多内置工具（日历、提醒事项、邮件）
 - [ ] 真实麦克风电平驱动波形

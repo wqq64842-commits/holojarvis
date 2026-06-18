@@ -73,6 +73,13 @@ def _strip_wake_word(text: str) -> str:
 
 def _cue() -> None:
     """唤醒提示音。"""
+    if config.IS_WINDOWS:
+        try:
+            import winsound
+            winsound.MessageBeep(winsound.MB_OK)
+        except Exception:  # noqa: BLE001
+            pass
+        return
     subprocess.Popen(
         ["afplay", "/System/Library/Sounds/Glass.aiff"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,

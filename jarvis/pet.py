@@ -33,6 +33,11 @@ import time
 import urllib.request
 from pathlib import Path
 
+from . import config
+
+if config.IS_WINDOWS:
+    from . import winops
+
 
 def _fix_tcltk_env() -> None:
     """uv/独立版 Python 自带 tkinter 但常找不到 Tcl/Tk 数据文件，
@@ -90,15 +95,25 @@ STATE_LABEL = {
 }
 
 _FONT_CACHE: dict[tuple[str, int], ImageFont.FreeTypeFont] = {}
+_WINDIR = os.environ.get("WINDIR", r"C:\Windows")
 _MONO_PATHS = (
+    # macOS
     "/System/Library/Fonts/SFNSMono.ttf",
     "/System/Library/Fonts/Menlo.ttc",
     "/System/Library/Fonts/Supplemental/Courier New.ttf",
+    # Windows
+    os.path.join(_WINDIR, "Fonts", "consola.ttf"),
+    os.path.join(_WINDIR, "Fonts", "cour.ttf"),
 )
 _HAN_PATHS = (
+    # macOS
     "/System/Library/Fonts/STHeiti Medium.ttc",
     "/System/Library/Fonts/Hiragino Sans GB.ttc",
     "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+    # Windows（微软雅黑 / 黑体）
+    os.path.join(_WINDIR, "Fonts", "msyh.ttc"),
+    os.path.join(_WINDIR, "Fonts", "msyh.ttf"),
+    os.path.join(_WINDIR, "Fonts", "simhei.ttf"),
 )
 
 
@@ -130,9 +145,17 @@ class Telemetry:
         self._ncpu = os.cpu_count() or 8
         self._cache: dict = {"batt": (None, False), "disk": (0, 0)}
         self._next = {"batt": 0.0, "disk": 0.0}
+        self._cpu = winops.CpuSampler() if config.IS_WINDOWS else None
+        self._disk_root = ((os.environ.get("SystemDrive") or "C:") + "\\"
+                           if config.IS_WINDOWS else "/")
 
     @staticmethod
     def _read_boottime() -> float:
+        if config.IS_WINDOWS:
+            try:
+                return winops.boot_epoch()
+            except Exception:  # noqa: BLE001
+                return time.time()
         try:
             out = subprocess.check_output(
                 ["sysctl", "-n", "kern.boottime"], text=True)
@@ -142,7 +165,7 @@ class Telemetry:
 
     def disk(self) -> tuple[float, float]:
         if time.time() >= self._next["disk"]:
-            du = shutil.disk_usage("/")
+            du = shutil.disk_usage(self._disk_root)
             self._cache["disk"] = (du.total / 1e9, du.free / 1e9)
             self._next["disk"] = time.time() + 10
         return self._cache["disk"]
@@ -150,16 +173,23 @@ class Telemetry:
     def battery(self) -> tuple[int | None, bool]:
         if time.time() >= self._next["batt"]:
             pct, charging = None, False
-            try:
-                out = subprocess.check_output(["pmset", "-g", "batt"], text=True)
-                line = out.strip().splitlines()[-1]
-                for tok in line.replace(";", " ").split():
-                    if tok.endswith("%"):
-                        pct = int(tok[:-1])
-                        break
-                charging = ("charging" in line) or ("charged" in line)
-            except Exception:  # noqa: BLE001
-                pass
+            if config.IS_WINDOWS:
+                try:
+                    pct, charging = winops.battery()
+                except Exception:  # noqa: BLE001
+                    pass
+            else:
+                try:
+                    out = subprocess.check_output(["pmset", "-g", "batt"],
+                                                  text=True)
+                    line = out.strip().splitlines()[-1]
+                    for tok in line.replace(";", " ").split():
+                        if tok.endswith("%"):
+                            pct = int(tok[:-1])
+                            break
+                    charging = ("charging" in line) or ("charged" in line)
+                except Exception:  # noqa: BLE001
+                    pass
             self._cache["batt"] = (pct, charging)
             self._next["batt"] = time.time() + 5
         return self._cache["batt"]
@@ -172,9 +202,12 @@ class Telemetry:
         return f"{d}D {h:02d}H {m:02d}M" if d else f"{h:02d}H {m:02d}M"
 
     def load(self) -> tuple[float, float]:
+        if self._cpu is not None:                  # Windows：用 CPU 占用率近似
+            frac = self._cpu.percent()
+            return frac * self._ncpu, frac
         try:
             la = os.getloadavg()[0]
-        except OSError:
+        except (OSError, AttributeError):
             la = 0.0
         return la, min(1.0, la / self._ncpu)
 
@@ -252,15 +285,23 @@ class DesktopPet:
         self.root = tk.Tk()
         self.root.overrideredirect(True)
         self.root.wm_attributes("-topmost", True)
-        for attr in ("-transparent",):
+        if config.IS_WINDOWS:
+            # Windows：把纯黑设为透明色，黑色区域即变透明（面板本身是近黑非纯黑，保留）
+            self.root.config(bg="black")
             try:
-                self.root.wm_attributes(attr, True)
+                self.root.wm_attributes("-transparentcolor", "black")
             except tk.TclError:
                 pass
-        try:
-            self.root.config(bg="systemTransparent")
-        except tk.TclError:
-            self.root.config(bg="black")
+        else:
+            for attr in ("-transparent",):
+                try:
+                    self.root.wm_attributes(attr, True)
+                except tk.TclError:
+                    pass
+            try:
+                self.root.config(bg="systemTransparent")
+            except tk.TclError:
+                self.root.config(bg="black")
 
         sw = self.root.winfo_screenwidth()
         sh = self.root.winfo_screenheight()

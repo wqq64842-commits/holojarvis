@@ -9,9 +9,16 @@ API Key 查找顺序：
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
+
+# ---- 平台判定（贾维斯支持 macOS 与 Windows）---------------------------
+IS_WINDOWS = sys.platform.startswith("win")
+IS_MACOS = sys.platform == "darwin"
+IS_LINUX = sys.platform.startswith("linux")
+OS_NAME = "Windows" if IS_WINDOWS else "macOS" if IS_MACOS else "Linux"
 
 # ---- 可调参数 ----------------------------------------------------------
 
@@ -55,8 +62,8 @@ ASR_LANGUAGE = "zh"
 # TTS 后端：
 #   gptsovits = 调用本地 GPT-SoVITS API，用参考音色克隆说话（推荐，你已有此项目）
 #   clone     = 用内置 XTTS 克隆音服务(voice_clone/serve.py)
-#   say       = 只用 macOS 自带 say
-# 任何克隆后端连不上时都会自动回退到 say。
+#   say       = 系统自带嗓音（macOS 的 say / Windows 的 SAPI 语音合成）
+# 任何克隆后端连不上时都会自动回退到系统嗓音。
 TTS_BACKEND = os.environ.get("JARVIS_TTS", "gptsovits")
 VOICE_SERVER = os.environ.get("JARVIS_VOICE_SERVER", "http://127.0.0.1:5111")
 

@@ -1,11 +1,12 @@
 """文字转语音。两种后端：
-  - clone：调本地克隆音服务(voice_clone/serve.py)，用参考音色说话；服务没开则自动回退
-  - say  ：macOS 自带 `say`（中文男声 Eddy），零依赖、即时
+  - clone / gptsovits：调本地克隆音服务，用参考音色说话；服务没开则自动回退
+  - say  ：系统自带嗓音——macOS 用 `say`，Windows 用 SAPI 语音合成，零依赖、即时
 """
 
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import urllib.request
@@ -13,6 +14,9 @@ import urllib.request
 from . import config
 
 _proc: subprocess.Popen | None = None
+
+# Windows 上隐藏 PowerShell 黑窗
+_NO_WINDOW = 0x08000000 if config.IS_WINDOWS else 0
 
 
 def _clean(text: str) -> str:
@@ -26,20 +30,60 @@ def _clean(text: str) -> str:
 
 def _play_file(path: str, blocking: bool) -> None:
     global _proc
-    cmd = ["afplay", path]
-    if blocking:
-        subprocess.run(cmd)
+    if config.IS_WINDOWS:
+        # 用 PowerShell 的 SoundPlayer 播放 wav；放进独立进程，stop() 可终止它
+        cmd = ["powershell", "-NoProfile", "-Command",
+               f"(New-Object System.Media.SoundPlayer '{path}').PlaySync()"]
     else:
-        _proc = subprocess.Popen(cmd)
+        cmd = ["afplay", path]
+    if blocking:
+        subprocess.run(cmd, creationflags=_NO_WINDOW)
+    else:
+        _proc = subprocess.Popen(cmd, creationflags=_NO_WINDOW)
 
 
 def _speak_say(text: str, blocking: bool) -> None:
+    """系统自带嗓音：macOS=say，Windows=SAPI(System.Speech)。"""
     global _proc
+    if config.IS_WINDOWS:
+        _speak_sapi(text, blocking)
+        return
     cmd = ["say", "-v", config.TTS_VOICE, "-r", str(config.TTS_RATE), text]
     if blocking:
         subprocess.run(cmd)
     else:
         _proc = subprocess.Popen(cmd)
+
+
+def _speak_sapi(text: str, blocking: bool) -> None:
+    """Windows 系统语音合成（SAPI）。文本经临时文件传入以避免引号转义问题；
+    默认自动挑一个中文(zh)嗓音，可用环境变量 JARVIS_VOICE 指定具体嗓音名。"""
+    global _proc
+    import tempfile
+    tf = tempfile.NamedTemporaryFile(suffix=".txt", delete=False,
+                                     mode="w", encoding="utf-8")
+    tf.write(text)
+    tf.close()
+    rate = max(-10, min(10, round((config.TTS_RATE - 200) / 20)))  # 字/分→SAPI档(-10~10)
+    script = (
+        "Add-Type -AssemblyName System.Speech;"
+        "$s=New-Object System.Speech.Synthesis.SpeechSynthesizer;"
+        f"$s.Rate={rate};"
+        "$v=$env:JV_VOICE;"
+        "if($v){try{$s.SelectVoice($v)}catch{}}else{"
+        "foreach($iv in $s.GetInstalledVoices()){"
+        "if($iv.VoiceInfo.Culture.Name -like 'zh*'){"
+        "$s.SelectVoice($iv.VoiceInfo.Name);break}}};"
+        "$t=Get-Content -Raw -Encoding UTF8 $env:JV_TXT;"
+        "$s.Speak($t)"
+    )
+    cmd = ["powershell", "-NoProfile", "-NonInteractive", "-Command", script]
+    env = {**os.environ, "JV_TXT": tf.name,
+           "JV_VOICE": os.environ.get("JARVIS_VOICE", "")}
+    if blocking:
+        subprocess.run(cmd, env=env, creationflags=_NO_WINDOW)
+    else:
+        _proc = subprocess.Popen(cmd, env=env, creationflags=_NO_WINDOW)
 
 
 def _speak_clone(text: str, blocking: bool) -> bool:
